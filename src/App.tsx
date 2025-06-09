@@ -2,6 +2,11 @@ import { useEffect, useState, useRef } from "react";
 import { motion, useAnimation, AnimatePresence } from "framer-motion";
 import { random } from "lodash";
 
+// Helper to get a color from a hue value
+function getColorFromHue(hue: number, sat = 80, light = 60) {
+  return `hsl(${hue}, ${sat}%, ${light}%)`;
+}
+
 const RINGS = 12;
 const DOTS = 100;
 const SVG_WIDTH = 800;
@@ -81,6 +86,7 @@ function App() {
   const [dots, setDots] = useState<Dot[]>([]);
   const [currentRing, setCurrentRing] = useState(RINGS + 1);
   const [dotOpacity, setDotOpacity] = useState(1);
+  const [hueBase, setHueBase] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleRestart = () => {
@@ -91,6 +97,19 @@ function App() {
       setDots([]);
     }
   };
+
+  // Animate hue for color cycling
+  useEffect(() => {
+    if (phase === "orbit" || phase === "scatter") {
+      let frame: number;
+      const animateHue = () => {
+        setHueBase(h => (h + 1) % 360);
+        frame = requestAnimationFrame(animateHue);
+      };
+      frame = requestAnimationFrame(animateHue);
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [phase]);
 
   useEffect(() => {
     const animate = async () => {
@@ -222,6 +241,8 @@ function App() {
               {[...Array(RINGS)].map((_, i) => {
                 const isCurrentRing = i === currentRing;
                 const radius = RINGS - i;
+                // Color cycling: each ring gets a different hue
+                const ringHue = (hueBase + i * (360 / RINGS)) % 360;
                 return (
                   <motion.ellipse
                     key={`ellipse-${i}`}
@@ -229,7 +250,8 @@ function App() {
                     cy={CENTER.y}
                     rx={radius * 25}
                     ry={radius * 12}
-                    stroke={isCurrentRing ? "#fff" : "rgba(255,255,255,0.3)"}
+                    stroke={getColorFromHue(ringHue, 80, isCurrentRing ? 70 : 40)}
+                    filter={isCurrentRing ? 'drop-shadow(0 0 8px ' + getColorFromHue(ringHue, 80, 70) + ')' : 'none'}
                     fill="none"
                     strokeWidth={!isCurrentRing ? "2" : "1"}
                     initial={{ opacity: 1 }}
@@ -260,7 +282,8 @@ function App() {
                 left: '50%',
                 width: '24px',
                 height: '24px',
-                backgroundColor: '#fff',
+                background: `radial-gradient(circle at 60% 40%, ${getColorFromHue(hueBase, 100, 70)}, ${getColorFromHue((hueBase + 60) % 360, 100, 40)})`,
+                boxShadow: `0 0 24px 8px ${getColorFromHue(hueBase, 100, 60)}`,
                 borderRadius: '50%',
                 transform: 'translate(-50%, -50%)',
                 transformOrigin: 'center center',
@@ -279,52 +302,57 @@ function App() {
 
           {phase === "scatter" && (
             <div key="scatter-container">
-              {dots.map((dot, index) => (
-                <motion.div
-                  key={`dot-${index}`}
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    width: `${dot.size}px`,
-                    height: `${dot.size}px`,
-                    backgroundColor: '#fff',
-                    borderRadius: '50%',
-                    transform: 'translate(-50%, -50%)',
-                  }}
-                  initial={{ 
-                    x: 0,
-                    y: 0,
-                    opacity: 0,
-                    scale: 0
-                  }}
-                  animate={{ 
-                    x: dot.x, 
-                    y: dot.y,
-                    opacity: [0, 1, 0.3, 1], // Blinking effect
-                    scale: [0, 1, 1.2, 1], // Pulsing effect
-                  }}
-                  transition={{ 
-                    duration: 3,
-                    delay: dot.delay,
-                    repeat: Infinity,
-                    repeatType: "reverse",
-                    times: [0, 0.2, 0.6, 1],
-                    opacity: {
+              {dots.map((dot, index) => {
+                // Each dot gets a unique hue for more colorfulness
+                const dotHue = (hueBase + index * (360 / DOTS)) % 360;
+                return (
+                  <motion.div
+                    key={`dot-${index}`}
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      width: `${dot.size}px`,
+                      height: `${dot.size}px`,
+                      background: `radial-gradient(circle at 60% 40%, ${getColorFromHue(dotHue, 100, 70)}, ${getColorFromHue((dotHue + 60) % 360, 100, 40)})`,
+                      boxShadow: `0 0 12px 2px ${getColorFromHue(dotHue, 100, 60)}`,
+                      borderRadius: '50%',
+                      transform: 'translate(-50%, -50%)',
+                    }}
+                    initial={{ 
+                      x: 0,
+                      y: 0,
+                      opacity: 0,
+                      scale: 0
+                    }}
+                    animate={{ 
+                      x: dot.x, 
+                      y: dot.y,
+                      opacity: [0, 1, 0.3, 1], // Blinking effect
+                      scale: [0, 1, 1.2, 1], // Pulsing effect
+                    }}
+                    transition={{ 
                       duration: 3,
+                      delay: dot.delay,
                       repeat: Infinity,
                       repeatType: "reverse",
-                      ease: "easeInOut"
-                    },
-                    scale: {
-                      duration: 3,
-                      repeat: Infinity,
-                      repeatType: "reverse",
-                      ease: "easeInOut"
-                    }
-                  }}
-                />
-              ))}
+                      times: [0, 0.2, 0.6, 1],
+                      opacity: {
+                        duration: 3,
+                        repeat: Infinity,
+                        repeatType: "reverse",
+                        ease: "easeInOut"
+                      },
+                      scale: {
+                        duration: 3,
+                        repeat: Infinity,
+                        repeatType: "reverse",
+                        ease: "easeInOut"
+                      }
+                    }}
+                  />
+                );
+              })}
             </div>
           )}
         </AnimatePresence>
