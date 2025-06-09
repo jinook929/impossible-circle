@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const TextAnimation = () => {
-  const [text, setText] = useState("Impossible");
+  const [text, setText] = useState("Impøssible");
   
   useEffect(() => {
     const interval = setInterval(() => {
-      setText(prev => prev === "Impossible" ? "(I'm possible)" : "Impossible");
+      setText(prev => prev === "Impøssible" ? "(I'm possible)" : "Impøssible");
     }, 4000); // Switch text every 4 seconds
     
     return () => clearInterval(interval);
