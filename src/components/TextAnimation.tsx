@@ -26,7 +26,15 @@ const TextAnimation = () => {
       <AnimatePresence mode="wait">
         <motion.div
           key={text}
-          style={{ display: 'flex', whiteSpace: 'pre' }}
+          style={{ 
+            display: 'flex',
+            whiteSpace: 'pre',
+            justifyContent: 'center',
+            width: '100%',
+            position: 'relative',
+            left: '50%',
+            transform: 'translateX(calc(-50% + 2px))'
+          }}
         >
           {text.split("").map((char, index) => (
             <motion.span
